@@ -1,88 +1,95 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import './App.css';
 
-function Task({ task, onMoveToCompleted, onDelete }) {
+const Task = React.memo(({ content, onMoveToCompleted, onDelete }) => {
   return (
-    <div className="task">
-      <span>{task}</span>
+    <li>
+      {content}
       <button onClick={onMoveToCompleted}>Finish</button>
       <button onClick={onDelete}>Delete</button>
-    </div>
+    </li>
   );
-}
-
-function TaskForm({ onSubmit }) {
-  const [task, setTask] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!task.trim()) return;
-    onSubmit(task);
-    setTask('');
-  };
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <input
-        type="text"
-        placeholder="Enter new task"
-        value={task}
-        onChange={(e) => setTask(e.target.value)}
-      />
-      <button type="submit">Add Task</button>
-    </form>
-  );
-}
+});
 
 function App() {
-  const [todoList, setTodoList] = useState([]);
-  const [completedList, setCompletedList] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [completedTasks, setCompletedTasks] = useState([]);
 
-  const handleAddTask = (task) => {
-    setTodoList([...todoList, task]);
+  const handleAddTask = (taskContent) => {
+    setTasks([...tasks, { content: taskContent }]);
   };
 
-  const handleMoveToCompleted = (taskIndex) => {
-    const taskToMove = todoList[taskIndex];
-    setTodoList(todoList.filter((_, index) => index !== taskIndex));
-    setCompletedList([...completedList, taskToMove]);
-  };
-
-  const handleDeleteTask = (listType, taskIndex) => {
-    if (listType === 'todo') {
-      setTodoList(todoList.filter((_, index) => index !== taskIndex));
-    } else if (listType === 'completed') {
-      setCompletedList(completedList.filter((_, index) => index !== taskIndex));
+  const handleDeleteTask = (index, column) => {
+    if (column === 'todo') {
+      setTasks(tasks.filter((_, i) => i !== index));
+    } else if (column === 'completed') {
+      setCompletedTasks(completedTasks.filter((_, i) => i !== index));
     }
   };
 
+  const handleMoveToCompleted = (index) => {
+    const taskToMove = tasks[index];
+    setCompletedTasks([...completedTasks, taskToMove]);
+    handleDeleteTask(index, 'todo');
+  };
+
+  const handleMoveToToDo = (index) => {
+    const taskToMove = completedTasks[index];
+    setTasks([...tasks, taskToMove]);
+    handleDeleteTask(index, 'completed');
+  };
+
+  const memoizedTasks = useMemo(
+    () =>
+      tasks.map((task, index) => (
+        <Task
+          key={index}
+          content={task.content}
+          onMoveToCompleted={() => handleMoveToCompleted(index)}
+          onDelete={() => handleDeleteTask(index, 'todo')}
+        />
+      )),
+    [tasks, handleMoveToCompleted, handleDeleteTask]
+  );
+
+  const memoizedCompletedTasks = useMemo(
+    () =>
+      completedTasks.map((task, index) => (
+        <Task
+          key={index}
+          content={task.content}
+          onMoveToCompleted={() => handleMoveToToDo(index)}
+          onDelete={() => handleDeleteTask(index, 'completed')}
+        />
+      )),
+    [completedTasks, handleMoveToToDo, handleDeleteTask]
+  );
+
   return (
-    <div className="app">
-      <div className="todo-column">
-        <h2>To Do</h2>
-        <TaskForm onSubmit={handleAddTask} />
-        {todoList.map((task, index) => (
-          <Task
-            key={index}
-            task={task}
-            onMoveToCompleted={() => handleMoveToCompleted(index)}
-            onDelete={() => handleDeleteTask('todo', index)}
+    <div className="App">
+      <h1>To-Do List</h1>
+      <div className="columns">
+        <div className="column">
+          <h2>To Do</h2>
+          <ul>{memoizedTasks}</ul>
+          <input
+            type="text"
+            placeholder="Enter new task"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleAddTask(e.target.value);
+                e.target.value = '';
+              }
+            }}
           />
-        ))}
-      </div>
-      <div className="completed-column">
-        <h2>Completed</h2>
-        {completedList.map((task, index) => (
-          <Task
-            key={index}
-            task={task}
-            onDelete={() => handleDeleteTask('completed', index)}
-          />
-        ))}
+        </div>
+        <div className="column">
+          <h2>Completed</h2>
+          <ul>{memoizedCompletedTasks}</ul>
+        </div>
       </div>
     </div>
   );
 }
 
 export default App;
-
