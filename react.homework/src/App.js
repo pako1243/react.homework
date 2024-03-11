@@ -1,12 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import './App.css';
 
-const Task = React.memo(({ content, onMoveToCompleted, onDelete }) => {
+const Task = React.memo(({ content, onAction }) => {
   return (
     <li>
       {content}
-      <button onClick={onMoveToCompleted}>Finish</button>
-      <button onClick={onDelete}>Delete</button>
+      <button onClick={onAction}>Action</button>
     </li>
   );
 });
@@ -15,54 +14,29 @@ function App() {
   const [tasks, setTasks] = useState([]);
   const [completedTasks, setCompletedTasks] = useState([]);
 
-  const handleAddTask = (taskContent) => {
-    setTasks([...tasks, { content: taskContent }]);
-  };
+  const handleAddTask = useCallback((taskContent) => {
+    setTasks((prevTasks) => [...prevTasks, taskContent]);
+  }, []);
 
-  const handleDeleteTask = (index, column) => {
+  const handleDeleteTask = useCallback((index, column) => {
     if (column === 'todo') {
-      setTasks(tasks.filter((_, i) => i !== index));
+      setTasks((prevTasks) => prevTasks.filter((_, i) => i !== index));
     } else if (column === 'completed') {
-      setCompletedTasks(completedTasks.filter((_, i) => i !== index));
+      setCompletedTasks((prevCompletedTasks) => prevCompletedTasks.filter((_, i) => i !== index));
     }
-  };
+  }, []);
 
-  const handleMoveToCompleted = (index) => {
-    const taskToMove = tasks[index];
-    setCompletedTasks([...completedTasks, taskToMove]);
-    handleDeleteTask(index, 'todo');
-  };
-
-  const handleMoveToToDo = (index) => {
-    const taskToMove = completedTasks[index];
-    setTasks([...tasks, taskToMove]);
-    handleDeleteTask(index, 'completed');
-  };
-
-  const memoizedTasks = useMemo(
-    () =>
-      tasks.map((task, index) => (
-        <Task
-          key={index}
-          content={task.content}
-          onMoveToCompleted={() => handleMoveToCompleted(index)}
-          onDelete={() => handleDeleteTask(index, 'todo')}
-        />
-      )),
-    [tasks, handleMoveToCompleted, handleDeleteTask]
-  );
-
-  const memoizedCompletedTasks = useMemo(
-    () =>
-      completedTasks.map((task, index) => (
-        <Task
-          key={index}
-          content={task.content}
-          onMoveToCompleted={() => handleMoveToToDo(index)}
-          onDelete={() => handleDeleteTask(index, 'completed')}
-        />
-      )),
-    [completedTasks, handleMoveToToDo, handleDeleteTask]
+  const handleMoveTask = useCallback(
+    (index, fromColumn, toColumn) => {
+      if (toColumn === 'completed') {
+        setCompletedTasks((prevCompletedTasks) => [...prevCompletedTasks, tasks[index]]);
+        handleDeleteTask(index, fromColumn);
+      } else if (toColumn === 'todo') {
+        setTasks((prevTasks) => [...prevTasks, completedTasks[index]]);
+        handleDeleteTask(index, fromColumn);
+      }
+    },
+    [tasks, completedTasks, handleDeleteTask]
   );
 
   return (
@@ -71,7 +45,11 @@ function App() {
       <div className="columns">
         <div className="column">
           <h2>To Do</h2>
-          <ul>{memoizedTasks}</ul>
+          <ul>
+            {tasks.map((task, index) => (
+              <Task key={index} content={task} onAction={() => handleMoveTask(index, 'todo', 'completed')} />
+            ))}
+          </ul>
           <input
             type="text"
             placeholder="Enter new task"
@@ -85,7 +63,11 @@ function App() {
         </div>
         <div className="column">
           <h2>Completed</h2>
-          <ul>{memoizedCompletedTasks}</ul>
+          <ul>
+            {completedTasks.map((task, index) => (
+              <Task key={index} content={task} onAction={() => handleMoveTask(index, 'completed', 'todo')} />
+            ))}
+          </ul>
         </div>
       </div>
     </div>
