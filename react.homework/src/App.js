@@ -1,77 +1,42 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocalStorage, useWindowSize } from './hooks';
 import './App.css';
 
-const Task = React.memo(({ content, onAction }) => {
-  return (
-    <li>
-      {content}
-      <button onClick={onAction}>Action</button>
-    </li>
-  );
-});
+const App = () => {
+  const [darkMode, setDarkMode] = useLocalStorage('darkMode', false);
+  const [isDesktop, setIsDesktop] = useState(false);
+  const { width } = useWindowSize();
 
-function App() {
-  const [tasks, setTasks] = useState([]);
-  const [completedTasks, setCompletedTasks] = useState([]);
+  useEffect(() => {
+    setIsDesktop(width > 768); 
+  }, [width]);
 
-  const handleAddTask = useCallback((taskContent) => {
-    setTasks((prevTasks) => [...prevTasks, taskContent]);
-  }, []);
+  const toggleTheme = () => {
+    setDarkMode(!darkMode);
+  };
 
-  const handleDeleteTask = useCallback((index, column) => {
-    if (column === 'todo') {
-      setTasks((prevTasks) => prevTasks.filter((_, i) => i !== index));
-    } else if (column === 'completed') {
-      setCompletedTasks((prevCompletedTasks) => prevCompletedTasks.filter((_, i) => i !== index));
-    }
-  }, []);
-
-  const handleMoveTask = useCallback(
-    (index, fromColumn, toColumn) => {
-      if (toColumn === 'completed') {
-        setCompletedTasks((prevCompletedTasks) => [...prevCompletedTasks, tasks[index]]);
-        handleDeleteTask(index, fromColumn);
-      } else if (toColumn === 'todo') {
-        setTasks((prevTasks) => [...prevTasks, completedTasks[index]]);
-        handleDeleteTask(index, fromColumn);
+  useEffect(() => {
+    if (isDesktop) {
+      if (darkMode) {
+        document.body.classList.add('dark');
+      } else {
+        document.body.classList.remove('dark');
       }
-    },
-    [tasks, completedTasks, handleDeleteTask]
-  );
+    } else {
+      document.body.classList.remove('dark');
+    }
+  }, [darkMode, isDesktop]);
 
   return (
     <div className="App">
-      <h1>To-Do List</h1>
-      <div className="columns">
-        <div className="column">
-          <h2>To Do</h2>
-          <ul>
-            {tasks.map((task, index) => (
-              <Task key={index} content={task} onAction={() => handleMoveTask(index, 'todo', 'completed')} />
-            ))}
-          </ul>
-          <input
-            type="text"
-            placeholder="Enter new task"
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                handleAddTask(e.target.value);
-                e.target.value = '';
-              }
-            }}
-          />
-        </div>
-        <div className="column">
-          <h2>Completed</h2>
-          <ul>
-            {completedTasks.map((task, index) => (
-              <Task key={index} content={task} onAction={() => handleMoveTask(index, 'completed', 'todo')} />
-            ))}
-          </ul>
-        </div>
-      </div>
+      {isDesktop && (
+        <button onClick={toggleTheme} className="toggle-button">
+          Toggle Theme
+        </button>
+      )}
+      <h1>{darkMode ? 'Dark Mode' : 'Light Mode'}</h1>
     </div>
   );
-}
+};
 
 export default App;
