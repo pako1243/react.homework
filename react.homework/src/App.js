@@ -1,61 +1,37 @@
-import React, { useState } from 'react';
+// App.js
+import React from 'react';
+import { BrowserRouter as Router, Route, Switch, Link } from 'react-router-dom';
+import Home from './components/Home';
+import About from './components/About';
+import Fact from './components/Fact';
+import NotFound from './components/NotFound';
 import './App.css';
 
-const Task = ({ content, onAction }) => {
-  return (
-    <div className="task">
-      <span>{content}</span>
-      <button onClick={onAction}>Move</button>
-    </div>
-  );
-};
-
-const Column = ({ title, tasks, onMoveTask }) => {
-  return (
-    <div className="column">
-      <h2>{title}</h2>
-      <div className="task-list">
-        {tasks.map((task, index) => (
-          <Task key={index} content={task.content} onAction={() => onMoveTask(task.id)} />
-        ))}
-      </div>
-    </div>
-  );
-};
-
 const App = () => {
-  const [tasks, setTasks] = useState([
-    { id: 1, content: 'Task 1', column: 'todo' },
-    { id: 2, content: 'Task 2', column: 'todo' },
-    { id: 3, content: 'Task 3', column: 'inProgress' },
-    { id: 4, content: 'Task 4', column: 'completed' },
-  ]);
-
-  const moveTask = (taskId, targetColumn) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) => {
-        if (task.id === taskId) {
-          return { ...task, column: targetColumn };
-        }
-        return task;
-      })
-    );
-  };
-
-  const todoTasks = tasks.filter((task) => task.column === 'todo');
-  const inProgressTasks = tasks.filter((task) => task.column === 'inProgress');
-  const completedTasks = tasks.filter((task) => task.column === 'completed');
-
   return (
-    <div className="App">
-      <h1>Todo List</h1>
-      <div className="columns">
-        <Column title="To Do" tasks={todoTasks} onMoveTask={(taskId) => moveTask(taskId, 'inProgress')} />
-        <Column title="In Progress" tasks={inProgressTasks} onMoveTask={(taskId) => moveTask(taskId, 'completed')} />
-        <Column title="Completed" tasks={completedTasks} onMoveTask={(taskId) => moveTask(taskId, 'todo')} />
+    <Router>
+      <div className="App">
+        <nav>
+          <ul>
+            <li>
+              <Link to="/">Home</Link>
+            </li>
+            <li>
+              <Link to="/about">About</Link>
+            </li>
+          </ul>
+        </nav>
+
+        <Switch>
+          <Route path="/" exact component={Home} />
+          <Route path="/about" component={About} />
+          <Route path="/:factId" component={Fact} />
+          <Route component={NotFound} />
+        </Switch>
       </div>
-    </div>
+    </Router>
   );
 };
 
 export default App;
+
